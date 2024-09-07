@@ -87,7 +87,11 @@ final class AudioManager {
 
   void listenToChangeInPlaylist() {
     _audioHandler.queue.listen((playlist) {
+      if (playlist.isEmpty) return;
       bool isNewPlayList = playlist.length > _playlist.length;
+      if (playlist.isNotEmpty && _playlist.isNotEmpty && !isNewPlayList) {
+        isNewPlayList = _playlist[1].id != playlist[1].id;
+      }
       if (playlist.isEmpty) {
         playlistNotifier.value = [];
         _playlist = [];
@@ -98,8 +102,8 @@ final class AudioManager {
           playlistNotifier.value = playlist;
         }
         if (isNewPlayList) {
-          _playlist.clear();
-          _playlist.addAll(playlist);
+          _playlist = [];
+          _playlist = playlist.toSet().toList();
         }
       }
       updateSkipButton();
@@ -206,7 +210,7 @@ final class AudioManager {
       }
 
       if (_playlistFiltered.isNotEmpty) {
-        _playlistFiltered.clear();
+        _playlistFiltered = [];
       }
       return;
     }
@@ -230,8 +234,8 @@ final class AudioManager {
       return;
     }
 
-    _playlistFiltered.clear();
-    _playlistFiltered.addAll(pl);
+    _playlistFiltered = [];
+    _playlistFiltered = pl;
     playlistNotifier.value = pl;
   }
 
@@ -313,6 +317,10 @@ final class AudioManager {
 
   Future<void> add(MediaItem mediaItem) async {
     _audioHandler.addQueueItem(mediaItem);
+  }
+
+  Future<void> addQueueItems(List<MediaItem> mediaItems) async {
+    _audioHandler.addQueueItems(mediaItems);
   }
 
   Future<void> adds(List<MediaItem> mediaItems, int index) async {

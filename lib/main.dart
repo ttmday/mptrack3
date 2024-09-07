@@ -24,7 +24,7 @@ void main() async {
   }
 
   AudioManager audioManager = AudioManager(audioHandler);
-  PlayerInvoke playerInvoke = PlayerInvoke(audioManager);
+  PlayerInvoke playerInvoke = PlayerInvoke(audioManager, audioQR);
   audioManager.managerNotifier.value = ManagerState.loading;
 
   await playerInvoke.init(songsList: songs, index: 0);

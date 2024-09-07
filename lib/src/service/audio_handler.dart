@@ -10,6 +10,8 @@ Future<MyAudioHandler> initAudioService() async {
         androidNotificationChannelId:
             'github.com.ttmday.mptrack3.channel.audio',
         androidNotificationChannelName: 'MpTrack3 playback',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
       ));
 }
 
@@ -148,8 +150,7 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
   }
 
   UriAudioSource createAudioSource(MediaItem mediaItem) {
-    return AudioSource.uri(Uri.parse(mediaItem.extras!['url'] as String),
-        tag: mediaItem);
+    return AudioSource.uri(mediaItem.artUri!, tag: mediaItem);
   }
 
   List<UriAudioSource> createAudioSources(List<MediaItem> mediaItems) {

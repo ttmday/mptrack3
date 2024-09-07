@@ -27,7 +27,7 @@ void main() {
     }
 
     AudioManager audioManager = AudioManager(audioHandler);
-    PlayerInvoke playerInvoke = PlayerInvoke(audioManager);
+    PlayerInvoke playerInvoke = PlayerInvoke(audioManager, audioQR);
     await playerInvoke.init(songsList: songs, index: 0);
     await tester.pumpWidget(MyApp(
       audioManager: audioManager,

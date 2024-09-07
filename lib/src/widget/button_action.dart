@@ -8,6 +8,7 @@ class ButtonAction extends StatelessWidget {
       required this.icon,
       required this.onPressed,
       this.onDoublePressed,
+      this.onLongPress,
       this.color,
       this.iconColor,
       this.minWidth = 54.0,
@@ -16,6 +17,7 @@ class ButtonAction extends StatelessWidget {
   final IconData icon;
   final void Function() onPressed;
   final void Function()? onDoublePressed;
+  final void Function()? onLongPress;
   final double minWidth;
   final bool isPressed;
   final Color? color;
@@ -26,6 +28,7 @@ class ButtonAction extends StatelessWidget {
     return GestureDetector(
       onTap: isPressed ? null : onPressed,
       onDoubleTap: onDoublePressed,
+      onLongPress: onLongPress,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppDesign.padding),
         child: Container(

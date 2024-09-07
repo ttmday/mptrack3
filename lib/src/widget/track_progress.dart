@@ -94,10 +94,10 @@ class TrackProgress extends StatelessWidget {
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackShape: MyTrackShape(),
-                      thumbShape: SliderComponentShape.noThumb,
+                      thumbShape: SliderComponentShape.noOverlay,
                       overlayShape: SliderComponentShape.noOverlay,
                       allowedInteraction: SliderInteraction.tapAndSlide,
-                      trackHeight: 2.5,
+                      trackHeight: 16.0,
                     ),
                     child: Slider(
                       min: 0.0,

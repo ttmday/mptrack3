@@ -1,3 +1,8 @@
+import 'dart:developer';
+import 'dart:io';
+import 'dart:isolate';
+
+import 'package:flutter/services.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class AudioQueryRequest {
@@ -35,10 +40,60 @@ class AudioQueryRequest {
   }
 
   Future<List<SongModel>> getSongs() {
-    return _audioQuery.querySongs(
-      sortType: null,
-      orderType: OrderType.ASC_OR_SMALLER,
-      uriType: UriType.EXTERNAL,
+    return computeIsolate<List<SongModel>>(() => _audioQuery.querySongs(
+          sortType: null,
+          orderType: OrderType.ASC_OR_SMALLER,
+          uriType: UriType.EXTERNAL,
+        ));
+  }
+
+  Future<List<dynamic>> getSong(String path) {
+    return _audioQuery.queryWithFilters(
+      path,
+      WithFiltersType.AUDIOS,
     );
   }
+
+  scan(String path) async {
+    File file = File(path);
+    try {
+      if (file.existsSync()) {
+        _audioQuery.scanMedia(file.path); // Scan the media 'path'
+      }
+    } catch (e) {
+      log("Error Query Audio scan $e");
+    }
+  }
+}
+
+Future<T> computeIsolate<T>(Future<T> Function() function) async {
+  final receivePort = ReceivePort();
+  var rootToken = RootIsolateToken.instance!;
+  await Isolate.spawn<_IsolateData>(
+    _isolateEntry,
+    _IsolateData(
+      token: rootToken,
+      function: function,
+      answerPort: receivePort.sendPort,
+    ),
+  );
+  return await receivePort.first;
+}
+
+void _isolateEntry(_IsolateData isolateData) async {
+  BackgroundIsolateBinaryMessenger.ensureInitialized(isolateData.token);
+  final answer = await isolateData.function();
+  isolateData.answerPort.send(answer);
+}
+
+class _IsolateData {
+  final RootIsolateToken token;
+  final Function function;
+  final SendPort answerPort;
+
+  _IsolateData({
+    required this.token,
+    required this.function,
+    required this.answerPort,
+  });
 }

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:audio_service/audio_service.dart';
+
 import 'package:mptrack3/src/service/audio_manager.dart';
 
 import 'package:mptrack3/src/constants/color.dart';
 import 'package:mptrack3/src/constants/design.dart';
 
-import 'package:mptrack3/src/widget/ButtonAction.dart';
+import 'package:mptrack3/src/widget/button_action.dart';
 
 class MainPlayerButtons extends StatelessWidget {
   const MainPlayerButtons({super.key});

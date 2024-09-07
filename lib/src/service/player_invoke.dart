@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/services.dart';
+import 'package:mptrack3/src/service/audio_query_request.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 import 'package:mptrack3/src/model/media_item_converter.dart';
@@ -23,9 +26,12 @@ import 'package:mptrack3/src/service/audio_manager.dart';
 
 class PlayerInvoke {
   final AudioManager _audioManager;
-
-  late final List<SongModel> _songs;
-  PlayerInvoke(AudioManager audioManager) : _audioManager = audioManager;
+  final AudioQueryRequest _queryRequest;
+  final platform = const MethodChannel('media_changes');
+  List<SongModel> _songs = [];
+  PlayerInvoke(AudioManager audioManager, AudioQueryRequest audioQR)
+      : _audioManager = audioManager,
+        _queryRequest = audioQR;
 
   Future<void> init({
     required List<SongModel> songsList,
@@ -46,15 +52,47 @@ class PlayerInvoke {
       }
 
       setValues(finalList, globalIndex);
+      await startListeningForMediaChanges();
+    }
+  }
+
+  Future<void> startListeningForMediaChanges() async {
+    bool isCalling = false;
+    try {
+      platform.setMethodCallHandler((call) async {
+        if (call.method == "onMediaChanged" && !isCalling) {
+          isCalling = true;
+          String filePath = call.arguments;
+          if (filePath.contains(".trashed")) return;
+          if (filePath.trim().endsWith('.mp3')) {
+            int isIndex = _songs.indexWhere((s) => s.data == filePath);
+            if (isIndex > -1) return;
+
+            final songs = await _queryRequest.getSongs();
+            if (songs.isEmpty) return;
+            _songs = songs;
+
+            final result = songs.firstWhere((s) => s.data == filePath);
+            _audioManager.add(result.toMediaItem());
+            isCalling = false;
+          }
+        }
+      });
+
+      await platform.invokeMethod('listen');
+    } on PlatformException catch (e) {
+      log("PlatformException startListeningForMediaChanges: '${e.message}'.");
+    } on MissingPluginException catch (e) {
+      log("MissingPluginException startListeningForMediaChanges: '${e.message}'.");
+    } catch (e) {
+      log("Error startListeningForMediaChanges $e");
+    } finally {
+      isCalling = false;
     }
   }
 
   Future<void> setValues(List arr, int index, {recommend = false}) async {
     final List<MediaItem> queue = [];
-    // final Map playItem = arr[index] as Map;
-    // final Map? nextItem =
-    //     index == arr.length - 1 ? null : arr[index + 1] as Map;
-
     queue.addAll(
       arr.map((song) => (song as SongModel).toMediaItem()),
     );
