@@ -17,9 +17,10 @@ extension MediaItemConverter on SongModel {
       artist: song.artist ?? "",
       duration: Duration(milliseconds: song.duration ?? 0),
       title: song.title,
-      artUri: Uri.tryParse(song.uri ?? ""),
+      artUri: Uri(),
       genre: song.genre ?? "",
       extras: {
+        'uri': Uri.tryParse(song.uri ?? ""),
         'artist_id': song.artistId,
         'album_id': song.albumId,
         // 'genre_id': int.tryParse(song.genreId?.toString() ?? '-1'),

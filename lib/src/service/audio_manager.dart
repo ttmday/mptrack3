@@ -87,25 +87,29 @@ final class AudioManager {
 
   void listenToChangeInPlaylist() {
     _audioHandler.queue.listen((playlist) {
-      if (playlist.isEmpty) return;
-      bool isNewPlayList = playlist.length > _playlist.length;
-      if (playlist.isNotEmpty && _playlist.isNotEmpty && !isNewPlayList) {
-        isNewPlayList = _playlist[1].id != playlist[1].id;
-      }
       if (playlist.isEmpty) {
         playlistNotifier.value = [];
         _playlist = [];
         _playlistFiltered = [];
         currentSongNotifier.value = null;
-      } else {
-        if (_playlistFiltered.isEmpty || isNewPlayList) {
-          playlistNotifier.value = playlist;
-        }
-        if (isNewPlayList) {
-          _playlist = [];
-          _playlist = playlist.toSet().toList();
-        }
+        return;
       }
+
+      bool isNewPlayList = playlist.length > _playlist.length;
+      bool isSamePlayList = true;
+      if (playlist.isNotEmpty && _playlist.isNotEmpty) {
+        isSamePlayList = _playlist[1].id == playlist[1].id;
+      }
+
+      if (_playlistFiltered.isEmpty) {
+        playlistNotifier.value = playlist;
+      }
+
+      if (isNewPlayList || !isSamePlayList) {
+        _playlist = [];
+        _playlist = playlist.toSet().toList();
+      }
+
       updateSkipButton();
     });
   }

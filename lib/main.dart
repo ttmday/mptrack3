@@ -6,6 +6,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'package:mptrack3/src/routes/router.dart';
 
+import 'package:mptrack3/src/service/notifications_service.dart';
 import 'package:mptrack3/src/service/audio_query_request.dart';
 import 'package:mptrack3/src/service/audio_handler.dart';
 import 'package:mptrack3/src/service/audio_manager.dart';
@@ -15,8 +16,10 @@ import 'package:mptrack3/src/constants/theme.dart';
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  await NotificationsService.getInstance().init();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   MyAudioHandler audioHandler = await initAudioService();
+
   final audioQR = AudioQueryRequest();
   final List<SongModel> songs = [];
   if (await audioQR.checkAndRequestPermissions()) {

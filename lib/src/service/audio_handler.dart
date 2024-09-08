@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:mptrack3/src/constants/color.dart';
+import 'package:mptrack3/src/model/media_item_converter.dart';
 
 Future<MyAudioHandler> initAudioService() async {
   return await AudioService.init(
@@ -12,6 +14,7 @@ Future<MyAudioHandler> initAudioService() async {
         androidNotificationChannelName: 'MpTrack3 playback',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
+        notificationColor: AppColors.background,
       ));
 }
 
@@ -46,6 +49,7 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
   Future<void> notifyAudioHandlerAboutPlaybackEvents() async {
     player.playbackEventStream.listen((event) {
       final playing = player.playing;
+
       playbackState.add(PlaybackState(
         controls: [
           MediaControl.skipToPrevious,
@@ -88,21 +92,30 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
         index = player.shuffleIndices!.indexOf(index);
       }
       final oldMediaItem = newQueue[index];
-      final newMediaItem = oldMediaItem.copyWith(duration: duration);
+      final newMediaItem = oldMediaItem.copyWith(
+        duration: duration,
+      );
       newQueue[index] = newMediaItem;
       queue.add(newQueue);
+
       mediaItem.add(newMediaItem);
     });
   }
 
   Future<void> listenForCurrentSongIndexChanges() async {
-    player.currentIndexStream.listen((index) {
+    player.currentIndexStream.listen((index) async {
       final pPlaylist = queue.value;
       if (index == null || pPlaylist.isEmpty) return;
       if (player.shuffleModeEnabled) {
         index = player.shuffleIndices!.indexOf(index);
       }
-      mediaItem.add(pPlaylist[index]);
+      final image = await pPlaylist[index].getImage();
+      MediaItem media = pPlaylist[index];
+      if (image != null) {
+        media = pPlaylist[index].copyWith(artUri: Uri.dataFromBytes(image));
+      }
+
+      mediaItem.add(media);
     });
   }
 
@@ -150,12 +163,12 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
   }
 
   UriAudioSource createAudioSource(MediaItem mediaItem) {
-    return AudioSource.uri(mediaItem.artUri!, tag: mediaItem);
+    return AudioSource.uri(mediaItem.extras!['uri']!, tag: mediaItem);
   }
 
   List<UriAudioSource> createAudioSources(List<MediaItem> mediaItems) {
     return mediaItems
-        .map((item) => AudioSource.uri(item.artUri!, tag: item))
+        .map((item) => AudioSource.uri(item.extras!['uri']!, tag: item))
         .toList();
   }
 

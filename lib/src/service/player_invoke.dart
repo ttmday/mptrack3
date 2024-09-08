@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/services.dart';
 import 'package:mptrack3/src/service/audio_query_request.dart';
+import 'package:mptrack3/src/service/notifications_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 import 'package:mptrack3/src/model/media_item_converter.dart';
@@ -15,20 +16,21 @@ import 'package:mptrack3/src/service/audio_manager.dart';
 //   return DateTime.now().difference(playerTapTime).inMilliseconds > 600;
 // }
 
-// Timer? debounce;
+Timer? debounce;
 
-// void playerPlayProcessDebounce(List songsList, int index) {
-//   debounce?.cancel();
-//   debounce = Timer(const Duration(milliseconds: 600), () {
-//     PlayerInvoke.init(songsList: songsList, index: index);
-//   });
-// }
+void onDebounce(void Function() action) {
+  if (debounce != null) {
+    debounce!.cancel();
+  }
+  debounce = Timer(const Duration(milliseconds: 1000), action);
+}
 
 class PlayerInvoke {
   final AudioManager _audioManager;
   final AudioQueryRequest _queryRequest;
   final platform = const MethodChannel('media_changes');
   List<SongModel> _songs = [];
+
   PlayerInvoke(AudioManager audioManager, AudioQueryRequest audioQR)
       : _audioManager = audioManager,
         _queryRequest = audioQR;
@@ -52,30 +54,36 @@ class PlayerInvoke {
       }
 
       setValues(finalList, globalIndex);
-      await startListeningForMediaChanges();
+      await _startListeningForMediaChanges();
     }
   }
 
-  Future<void> startListeningForMediaChanges() async {
-    bool isCalling = false;
+  Future<void> _startListeningForMediaChanges() async {
+    List<String> filesPath = [];
+
     try {
       platform.setMethodCallHandler((call) async {
-        if (call.method == "onMediaChanged" && !isCalling) {
-          isCalling = true;
+        if (call.method == "onMediaChanged") {
           String filePath = call.arguments;
-          if (filePath.contains(".trashed")) return;
-          if (filePath.trim().endsWith('.mp3')) {
-            int isIndex = _songs.indexWhere((s) => s.data == filePath);
-            if (isIndex > -1) return;
 
+          if (filePath.contains(".trashed")) return;
+          if (!filePath.trim().endsWith('.mp3')) return;
+
+          filesPath.add(filePath);
+
+          onDebounce(() async {
+            List<String> paths = filesPath.toSet().toList();
             final songs = await _queryRequest.getSongs();
             if (songs.isEmpty) return;
             _songs = songs;
 
-            final result = songs.firstWhere((s) => s.data == filePath);
-            _audioManager.add(result.toMediaItem());
-            isCalling = false;
-          }
+            final result = songs.where((s) => paths.contains(s.data));
+            await _audioManager
+                .addQueueItems(result.map((s) => s.toMediaItem()).toList());
+            await NotificationsService.getInstance()
+                .show(title: "Mptrack3", body: "Playlist actualizada.");
+            filesPath = [];
+          });
         }
       });
 
@@ -86,8 +94,6 @@ class PlayerInvoke {
       log("MissingPluginException startListeningForMediaChanges: '${e.message}'.");
     } catch (e) {
       log("Error startListeningForMediaChanges $e");
-    } finally {
-      isCalling = false;
     }
   }
 
