@@ -21,16 +21,19 @@ void main() async {
   MyAudioHandler audioHandler = await initAudioService();
 
   final audioQR = AudioQueryRequest();
-  final List<SongModel> songs = [];
+  final List<SongModel> allSongs = [];
   if (await audioQR.checkAndRequestPermissions()) {
-    songs.addAll(await audioQR.getSongs());
+    List<SongModel> songs = await audioQR.getSongs();
+    songs = audioQR.filterMusic(songs);
+
+    allSongs.addAll(songs);
   }
 
   AudioManager audioManager = AudioManager(audioHandler);
   PlayerInvoke playerInvoke = PlayerInvoke(audioManager, audioQR);
   audioManager.managerNotifier.value = ManagerState.loading;
 
-  await playerInvoke.init(songsList: songs, index: 0);
+  await playerInvoke.init(songsList: allSongs, index: 0);
 
   FlutterNativeSplash.remove();
   runApp(MyApp(

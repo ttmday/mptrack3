@@ -41,10 +41,19 @@ class AudioQueryRequest {
 
   Future<List<SongModel>> getSongs() {
     return computeIsolate<List<SongModel>>(() => _audioQuery.querySongs(
-          sortType: null,
+          sortType: SongSortType.DATE_ADDED,
           orderType: OrderType.ASC_OR_SMALLER,
           uriType: UriType.EXTERNAL,
         ));
+  }
+
+  List<SongModel> filterMusic(List<SongModel> songs) {
+    List<String> paths = [
+      "/storage/emulated/0/Music/",
+      "/storage/emulated/0/Musica/",
+      "/storage/emulated/0/Música/"
+    ];
+    return songs.where((s) => paths.any((p) => s.data.startsWith(p))).toList();
   }
 
   Future<List<dynamic>> getSong(String path) {

@@ -167,9 +167,45 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
   }
 
   List<UriAudioSource> createAudioSources(List<MediaItem> mediaItems) {
-    return mediaItems
-        .map((item) => AudioSource.uri(item.extras!['uri']!, tag: item))
-        .toList();
+    return mediaItems.map((item) {
+      final artUri = _getArtworkUri(item.id);
+
+      item = item.copyWith(artUri: artUri);
+      return AudioSource.uri(item.extras!['uri']!, tag: item);
+    }).toList();
+  }
+
+  Uri? _getArtworkUri(dynamic songId) {
+    try {
+      // on_audio_query puede darnos los bytes, no siempre un URI directo para artUri
+      // Alternativa 1: Usar el URI de la canción directamente (Android a veces lo resuelve)
+      // Esto es lo más simple si funciona en tu caso de uso
+      // Necesitarías obtener el song.uri aquí si no lo pasaste
+      // return Uri.parse(song.uri);
+
+      // Alternativa 2: Consultar los bytes y guardarlos temporalmente (más complejo)
+      // Uint8List? artworkBytes = await _audioQuery.queryArtwork(
+      //   songId,
+      //   ArtworkType.AUDIO,
+      //   format: ArtworkFormat.JPEG, // o PNG
+      //   size: 200, // Tamaño adecuado para notificación
+      // );
+      // if (artworkBytes != null) {
+      //   // Guardar los bytes en un archivo temporal
+      //   final tempDir = await getTemporaryDirectory();
+      //   final tempFile = File('${tempDir.path}/art_$songId.jpg');
+      //   await tempFile.writeAsBytes(artworkBytes);
+      //   return tempFile.uri; // Devuelve un file:// URI
+      // }
+
+      // Alternativa 3 (Recomendada si la 1 no funciona bien):
+      // Construir un content URI específico para la carátula en Android
+      // Esto a menudo funciona bien con MediaStore
+      return Uri.parse('content://media/external/audio/media/$songId/albumart');
+    } catch (e) {
+      print("Error obteniendo artwork URI: $e");
+      return null;
+    }
   }
 
   @override
