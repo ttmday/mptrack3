@@ -39,7 +39,7 @@ class SongTile extends StatelessWidget {
                   const EdgeInsets.symmetric(vertical: AppDesign.padding * .45),
               child: ColoredBox(
                   color: isCurrentSong
-                      ? AppColors.accent.withOpacity(.25)
+                      ? AppColors.accent.withValues(alpha: .25)
                       : Colors.transparent,
                   child: SizedBox(
                     height: 30.0,
