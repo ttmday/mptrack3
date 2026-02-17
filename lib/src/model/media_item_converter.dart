@@ -11,6 +11,7 @@ extension MediaItemConverter on SongModel {
       bool autoplay = true,
       String? playlistBox}) {
     final song = this;
+
     return MediaItem(
       id: song.id.toString(),
       album: song.album ?? "",
@@ -20,9 +21,9 @@ extension MediaItemConverter on SongModel {
       artUri: Uri(),
       genre: song.genre ?? "",
       extras: {
-        'uri': Uri.tryParse(song.uri ?? ""),
+        'uri': "file://${Uri.tryParse(song.data)}",
         'artist_id': song.artistId,
-        'album_id': song.albumId,
+        'album_id': song.id.toString(),
         // 'genre_id': int.tryParse(song.genreId?.toString() ?? '-1'),
         'addedByAutoplay': addedByAutoplay,
         'autoplay': autoplay,

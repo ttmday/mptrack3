@@ -97,9 +97,9 @@ final class AudioManager {
 
       bool isNewPlayList = playlist.length > _playlist.length;
       bool isSamePlayList = true;
-      if (playlist.isNotEmpty && _playlist.isNotEmpty) {
-        isSamePlayList = _playlist[1].id == playlist[1].id;
-      }
+      // if (playlist.isNotEmpty && _playlist.isNotEmpty) {
+      //   isSamePlayList = _playlist[1].id == playlist[1].id;
+      // }
 
       if (_playlistFiltered.isEmpty) {
         playlistNotifier.value = playlist;

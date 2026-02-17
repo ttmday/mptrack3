@@ -42,7 +42,7 @@ class AudioQueryRequest {
   Future<List<SongModel>> getSongs() {
     return computeIsolate<List<SongModel>>(() => _audioQuery.querySongs(
           sortType: SongSortType.DATE_ADDED,
-          orderType: OrderType.ASC_OR_SMALLER,
+          orderType: null,
           uriType: UriType.EXTERNAL,
         ));
   }

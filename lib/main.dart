@@ -16,16 +16,30 @@ import 'package:mptrack3/src/constants/theme.dart';
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  await NotificationsService.getInstance().init();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  await NotificationsService.getInstance().init();
   MyAudioHandler audioHandler = await initAudioService();
 
   final audioQR = AudioQueryRequest();
   final List<SongModel> allSongs = [];
   if (await audioQR.checkAndRequestPermissions()) {
     List<SongModel> songs = await audioQR.getSongs();
-    songs = audioQR.filterMusic(songs);
 
+    songs = audioQR.filterMusic(songs);
+    songs.sort((a, b) {
+      int? dateA = a.dateAdded;
+      int? dateB = b.dateAdded;
+
+      if (dateA != null && dateB != null) {
+        return dateB.compareTo(dateA);
+      }
+
+      if (dateA == null) {
+        return 1;
+      }
+
+      return -1;
+    });
     allSongs.addAll(songs);
   }
 

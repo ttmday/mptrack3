@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
@@ -12,6 +14,7 @@ Future<MyAudioHandler> initAudioService() async {
         androidNotificationChannelId:
             'github.com.ttmday.mptrack3.channel.audio',
         androidNotificationChannelName: 'MpTrack3 playback',
+        // androidNotificationIcon: "drawable/ic_stat_music",
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
         notificationColor: AppColors.background,
@@ -27,6 +30,7 @@ abstract class AudioPlayerHandler extends BaseAudioHandler {
 
 class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
   final player = AudioPlayer();
+
   final playlist =
       ConcatenatingAudioSource(children: [], useLazyPreparation: true);
   late List<int> preferredCompactNotificationButton = [1, 2, 3];
@@ -85,12 +89,15 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
 
   Future<void> listenForDurationChanges() async {
     player.durationStream.listen((duration) {
-      var index = player.currentIndex;
+      var index = player.currentIndex ?? 0;
       final newQueue = queue.value;
-      if (index == null || newQueue.isEmpty || newQueue.length < index) return;
+
+      if (index >= newQueue.length) return;
+
       if (player.shuffleModeEnabled) {
         index = player.shuffleIndices!.indexOf(index);
       }
+
       final oldMediaItem = newQueue[index];
       final newMediaItem = oldMediaItem.copyWith(
         duration: duration,
@@ -112,11 +119,26 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
       final image = await pPlaylist[index].getImage();
       MediaItem media = pPlaylist[index];
       if (image != null) {
-        media = pPlaylist[index].copyWith(artUri: Uri.dataFromBytes(image));
+        media = media.copyWith(
+            artUri: await getImageUriFromBase64(media.id, image));
       }
 
       mediaItem.add(media);
     });
+  }
+
+  Future<Uri> getImageUriFromBase64(dynamic filename, Uint8List bytes) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$filename.jpg');
+
+      await file.writeAsBytes(bytes);
+
+      return file.uri;
+    } catch (e) {
+      print("Error procesando imagen: $e");
+      return Uri.parse("assets/icon.png");
+    }
   }
 
   Future<void> listenForSequenceStateChanges() async {
@@ -129,11 +151,12 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
   }
 
   @override
-  Future<void> addQueueItem(MediaItem mediaItem) async {
-    final audioSource = createAudioSource(mediaItem);
+  Future<void> addQueueItem(MediaItem item) async {
+    final audioSource = createAudioSource(item);
     await playlist.add(audioSource);
-    final newQueue = queue.value..add(mediaItem);
+    final newQueue = queue.value..add(item);
     queue.add(newQueue);
+    mediaItem.add(item);
   }
 
   @override
@@ -163,49 +186,14 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
   }
 
   UriAudioSource createAudioSource(MediaItem mediaItem) {
-    return AudioSource.uri(mediaItem.extras!['uri']!, tag: mediaItem);
+    return AudioSource.uri(Uri.parse(mediaItem.extras!['uri']!),
+        tag: mediaItem);
   }
 
   List<UriAudioSource> createAudioSources(List<MediaItem> mediaItems) {
     return mediaItems.map((item) {
-      final artUri = _getArtworkUri(item.id);
-
-      item = item.copyWith(artUri: artUri);
-      return AudioSource.uri(item.extras!['uri']!, tag: item);
+      return AudioSource.uri(Uri.parse(item.extras!['uri']!), tag: item);
     }).toList();
-  }
-
-  Uri? _getArtworkUri(dynamic songId) {
-    try {
-      // on_audio_query puede darnos los bytes, no siempre un URI directo para artUri
-      // Alternativa 1: Usar el URI de la canción directamente (Android a veces lo resuelve)
-      // Esto es lo más simple si funciona en tu caso de uso
-      // Necesitarías obtener el song.uri aquí si no lo pasaste
-      // return Uri.parse(song.uri);
-
-      // Alternativa 2: Consultar los bytes y guardarlos temporalmente (más complejo)
-      // Uint8List? artworkBytes = await _audioQuery.queryArtwork(
-      //   songId,
-      //   ArtworkType.AUDIO,
-      //   format: ArtworkFormat.JPEG, // o PNG
-      //   size: 200, // Tamaño adecuado para notificación
-      // );
-      // if (artworkBytes != null) {
-      //   // Guardar los bytes en un archivo temporal
-      //   final tempDir = await getTemporaryDirectory();
-      //   final tempFile = File('${tempDir.path}/art_$songId.jpg');
-      //   await tempFile.writeAsBytes(artworkBytes);
-      //   return tempFile.uri; // Devuelve un file:// URI
-      // }
-
-      // Alternativa 3 (Recomendada si la 1 no funciona bien):
-      // Construir un content URI específico para la carátula en Android
-      // Esto a menudo funciona bien con MediaStore
-      return Uri.parse('content://media/external/audio/media/$songId/albumart');
-    } catch (e) {
-      print("Error obteniendo artwork URI: $e");
-      return null;
-    }
   }
 
   @override
@@ -236,6 +224,7 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
     if (player.shuffleModeEnabled) {
       index = player.shuffleIndices![index];
     }
+
     await player.seek(Duration.zero, index: index);
     await player.play();
   }
@@ -247,6 +236,7 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
     if (player.shuffleModeEnabled) {
       index = player.shuffleIndices![index];
     }
+    mediaItem.add(queue.value[index]);
     await player.seek(Duration.zero, index: index);
     await player.play();
   }
@@ -331,8 +321,8 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
     try {
       await player.setAudioSource(playlist,
           initialIndex: index, initialPosition: Duration.zero);
-    } catch (_) {
-      setNewPlaylist(mediaItems, index);
+    } catch (e) {
+      print("Error setting new playlist: $e");
     }
   }
 }

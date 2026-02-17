@@ -77,6 +77,20 @@ class PlayerInvoke {
             if (songs.isEmpty) return;
             _songs = songs;
 
+            _songs.sort((a, b) {
+              int? dateA = a.dateAdded;
+              int? dateB = b.dateAdded;
+
+              if (dateA != null && dateB != null) {
+                return dateB.compareTo(dateA);
+              }
+
+              if (dateA == null) {
+                return 1;
+              }
+
+              return -1;
+            });
             final result = songs.where((s) => paths.contains(s.data));
             await _audioManager
                 .addQueueItems(result.map((s) => s.toMediaItem()).toList());
@@ -99,6 +113,7 @@ class PlayerInvoke {
 
   Future<void> setValues(List arr, int index, {recommend = false}) async {
     final List<MediaItem> queue = [];
+
     queue.addAll(
       arr.map((song) => (song as SongModel).toMediaItem()),
     );
