@@ -118,17 +118,20 @@ class MyAudioHandler extends AudioPlayerHandler with QueueHandler, SeekHandler {
       }
       final image = await pPlaylist[index].getImage();
       MediaItem media = pPlaylist[index];
-      if (image != null) {
-        media = media.copyWith(
-            artUri: await getImageUriFromBase64(media.id, image));
-      }
+
+      media =
+          media.copyWith(artUri: await getImageUriFromBase64(media.id, image));
 
       mediaItem.add(media);
     });
   }
 
-  Future<Uri> getImageUriFromBase64(dynamic filename, Uint8List bytes) async {
+  Future<Uri> getImageUriFromBase64(dynamic filename, Uint8List? bytes) async {
     try {
+      if (bytes == null) {
+        return Uri.parse("assets/icon.png");
+      }
+
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/$filename.jpg');
 
