@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 import 'package:provider/provider.dart';
-import 'package:audio_service/audio_service.dart';
 
-import 'package:mptrack3/src/service/audio_manager.dart';
-
+import 'package:mptrack3/src/browser/browser_controller.dart';
 import 'package:mptrack3/src/constants/color.dart';
 import 'package:mptrack3/src/constants/design.dart';
-
+import 'package:mptrack3/src/player/play_order.dart';
+import 'package:mptrack3/src/player/player_controller.dart';
 import 'package:mptrack3/src/widget/button_action.dart';
 
 class MainPlayerButtons extends StatelessWidget {
@@ -14,186 +13,172 @@ class MainPlayerButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const gap = SizedBox(width: AppDesign.padding * .8);
     return const Row(
       children: [
         PrevButtonAction(),
-        SizedBox(
-          width: AppDesign.padding * .8,
-        ),
+        gap,
         NextButtonAction(),
-        SizedBox(
-          width: AppDesign.padding * .8,
-        ),
+        gap,
         PlayButtonAction(),
-        SizedBox(
-          width: AppDesign.padding * .8,
-        ),
+        gap,
         StopButtonAction(),
         Spacer(),
-        ShuffleButtonAction(),
-        SizedBox(
-          width: AppDesign.padding * .8,
-        ),
-        RepeatButtonAction()
+        ShuffleButtonAction(shuffleVisibleList: true),
+        gap,
+        RepeatButtonAction(),
       ],
     );
   }
 }
 
 class PrevButtonAction extends StatelessWidget {
-  const PrevButtonAction({
-    super.key,
-  });
+  const PrevButtonAction({super.key, this.minWidth = 54.0});
+  final double minWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AudioManager>(builder: (context, provider, _) {
-      return ValueListenableBuilder(
-          valueListenable: provider.isFirstSongNotifier,
-          builder: (context, isFirst, _) {
-            return ButtonAction(
-              icon: Icons.keyboard_double_arrow_left,
-              isPressed: isFirst,
-              onPressed: () {
-                provider.seek(Duration.zero);
-              },
-              onDoublePressed: () {
-                provider.previous();
-              },
-            );
-          });
-    });
+    final player = context.read<PlayerController>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: player.hasPrevious,
+      builder: (context, enabled, _) => ButtonAction(
+        minWidth: minWidth,
+        icon: Icons.keyboard_double_arrow_left,
+        isPressed: !enabled,
+        onPressed: player.previous,
+      ),
+    );
   }
 }
 
 class NextButtonAction extends StatelessWidget {
-  const NextButtonAction({
-    super.key,
-  });
+  const NextButtonAction({super.key, this.minWidth = 54.0});
+  final double minWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AudioManager>(builder: (context, provider, _) {
-      return ValueListenableBuilder(
-          valueListenable: provider.isLastSongNotifier,
-          builder: (context, isLast, _) {
-            return ButtonAction(
-                icon: Icons.keyboard_double_arrow_right,
-                isPressed: isLast,
-                onPressed: () {
-                  provider.next();
-                });
-          });
-    });
+    final player = context.read<PlayerController>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: player.hasNext,
+      builder: (context, enabled, _) => ButtonAction(
+        minWidth: minWidth,
+        icon: Icons.keyboard_double_arrow_right,
+        isPressed: !enabled,
+        onPressed: player.next,
+      ),
+    );
   }
 }
 
 class PlayButtonAction extends StatelessWidget {
-  const PlayButtonAction({
-    super.key,
-  });
+  const PlayButtonAction({super.key, this.minWidth = 54.0});
+  final double minWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AudioManager>(builder: (context, provider, _) {
-      return ValueListenableBuilder(
-          valueListenable: provider.playButtonNotifier,
-          builder: (context, playing, _) {
-            return ButtonAction(
-                icon: playing == ButtonState.playing
-                    ? Icons.pause
-                    : Icons.play_arrow,
-                color: playing == ButtonState.playing ? AppColors.accent : null,
-                iconColor:
-                    playing == ButtonState.playing ? AppColors.tertiary : null,
-                onPressed: () {
-                  provider.playPause();
-                });
-          });
-    });
+    final player = context.read<PlayerController>();
+    return ValueListenableBuilder<PlayState>(
+      valueListenable: player.playState,
+      builder: (context, state, _) {
+        final playing = state == PlayState.playing;
+        return ButtonAction(
+          minWidth: minWidth,
+          icon: state == PlayState.loading
+              ? Icons.hourglass_empty
+              : (playing ? Icons.pause : Icons.play_arrow),
+          color: playing ? AppColors.accent : null,
+          iconColor: playing ? AppColors.tertiary : null,
+          onPressed: player.togglePlay,
+        );
+      },
+    );
   }
 }
 
 class StopButtonAction extends StatelessWidget {
-  const StopButtonAction({
-    super.key,
-  });
+  const StopButtonAction({super.key, this.minWidth = 54.0});
+  final double minWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AudioManager>(builder: (context, provider, _) {
-      return ValueListenableBuilder(
-          valueListenable: provider.playbackStatNotifier,
-          builder: (context, state, _) {
-            return ButtonAction(
-                icon: Icons.stop,
-                isPressed: state == AudioProcessingState.idle,
-                onPressed: () {
-                  provider.stop();
-                });
-          });
-    });
+    final player = context.read<PlayerController>();
+    return ValueListenableBuilder<PlayState>(
+      valueListenable: player.playState,
+      builder: (context, state, _) => ButtonAction(
+        minWidth: minWidth,
+        icon: Icons.stop,
+        isPressed: state == PlayState.stopped,
+        onPressed: player.stop,
+      ),
+    );
   }
 }
 
 class ShuffleButtonAction extends StatelessWidget {
   const ShuffleButtonAction({
     super.key,
+    this.minWidth = 38.0,
+    this.shuffleVisibleList = false,
   });
+  final double minWidth;
+
+  /// On the home screen, turning shuffle on plays the list being viewed
+  /// (folder or search results) in a fresh random order.
+  final bool shuffleVisibleList;
+
+  void _toggle(BuildContext context, PlayerController player) {
+    if (!shuffleVisibleList) {
+      player.toggleShuffle();
+      return;
+    }
+    final browser = context.read<BrowserController>();
+    if (browser.searching) {
+      player.toggleShuffleFor(browser.results, label: 'find: ${browser.query.trim()}');
+      return;
+    }
+    final folder = browser.cwd;
+    final direct = browser.tracksOf(folder);
+    final recursive = direct.isEmpty;
+    player.toggleShuffleFor(
+      recursive ? browser.playlistOf(folder) : direct,
+      label: browser.cwdLabel,
+      context: folder.ref,
+      recursive: recursive,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AudioManager>(builder: (context, provider, _) {
-      return ValueListenableBuilder(
-          valueListenable: provider.isShuffleModeEnabledNotifier,
-          builder: (context, isShuffle, _) {
-            return ButtonAction(
-                minWidth: 38.0,
-                icon: Icons.shuffle,
-                color: isShuffle ? AppColors.accent : null,
-                iconColor: isShuffle ? AppColors.secondary : null,
-                onPressed: () {
-                  if (isShuffle) {
-                    provider.setShuffleMode(AudioServiceShuffleMode.none);
-                  } else {
-                    provider.setShuffleMode(AudioServiceShuffleMode.all);
-                  }
-                });
-          });
-    });
+    final player = context.read<PlayerController>();
+    return ValueListenableBuilder<bool>(
+      valueListenable: player.shuffle,
+      builder: (context, isShuffle, _) => ButtonAction(
+        minWidth: minWidth,
+        icon: Icons.shuffle,
+        color: isShuffle ? AppColors.accent : null,
+        iconColor: isShuffle ? AppColors.secondary : null,
+        onPressed: () => _toggle(context, player),
+      ),
+    );
   }
 }
 
 class RepeatButtonAction extends StatelessWidget {
-  const RepeatButtonAction({
-    super.key,
-  });
+  const RepeatButtonAction({super.key, this.minWidth = 38.0});
+  final double minWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AudioManager>(builder: (context, provider, _) {
-      return ValueListenableBuilder(
-          valueListenable: provider.repeatButtonNotifier,
-          builder: (context, repeatState, _) {
-            return ButtonAction(
-                minWidth: 38.0,
-                icon: repeatState == RepeatState.repeatSong
-                    ? Icons.repeat_one
-                    : Icons.repeat,
-                color: repeatState != RepeatState.off ? AppColors.accent : null,
-                iconColor:
-                    repeatState != RepeatState.off ? AppColors.secondary : null,
-                onPressed: () {
-                  switch (repeatState) {
-                    case RepeatState.off:
-                      provider.setRepeatMode(AudioServiceRepeatMode.one);
-                    case RepeatState.repeatSong:
-                      provider.setRepeatMode(AudioServiceRepeatMode.all);
-                    case _:
-                      provider.setRepeatMode(AudioServiceRepeatMode.none);
-                  }
-                });
-          });
-    });
+    final player = context.read<PlayerController>();
+    return ValueListenableBuilder<RepeatMode>(
+      valueListenable: player.repeat,
+      builder: (context, mode, _) => ButtonAction(
+        minWidth: minWidth,
+        icon: mode == RepeatMode.one ? Icons.repeat_one : Icons.repeat,
+        color: mode != RepeatMode.off ? AppColors.accent : null,
+        iconColor: mode != RepeatMode.off ? AppColors.secondary : null,
+        onPressed: player.cycleRepeat,
+      ),
+    );
   }
 }

@@ -1,105 +1,103 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:mptrack3/src/service/audio_manager.dart';
-import 'package:audio_service/audio_service.dart';
-
+import 'package:mptrack3/src/constants/color.dart';
+import 'package:mptrack3/src/constants/design.dart';
+import 'package:mptrack3/src/l10n/strings.dart';
+import 'package:mptrack3/src/model/track.dart';
+import 'package:mptrack3/src/player/player_controller.dart';
+import 'package:mptrack3/src/routes/router.dart';
 import 'package:mptrack3/src/widget/cover_album.dart';
 import 'package:mptrack3/src/widget/track_progress.dart';
 
-import 'package:mptrack3/src/constants/design.dart';
-import 'package:mptrack3/src/constants/color.dart';
-
+/// Compact player header on the home screen. Tapping it (or swiping it
+/// up) opens the Now Playing screen.
 class MainPlayer extends StatelessWidget {
   const MainPlayer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AudioManager>(builder: (context, provider, _) {
-      return ValueListenableBuilder(
-          valueListenable: provider.currentSongNotifier,
-          builder: (context, song, _) {
-            return SizedBox(
-              height: 138.0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
+    final player = context.read<PlayerController>();
+    return ValueListenableBuilder<Track?>(
+      valueListenable: player.currentTrack,
+      builder: (context, track, _) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: track == null ? null : () => context.push(AppRouter.nowPlaying),
+          onVerticalDragEnd: (details) {
+            if (track != null && (details.primaryVelocity ?? 0) < -200) {
+              context.push(AppRouter.nowPlaying);
+            }
+          },
+          child: SizedBox(
+            height: 138.0,
+            child: Row(
+              children: [
+                Hero(
+                  tag: 'cover',
+                  child: Container(
                     width: 100,
                     height: 120.0,
-                    alignment: Alignment.center,
                     padding: const EdgeInsets.all(AppDesign.padding * .5),
                     decoration: const BoxDecoration(
-                        border: Border.fromBorderSide(
-                            BorderSide(color: AppColors.border))),
-                    child: CoverAlbum(
-                      song: song,
+                      border: Border.fromBorderSide(BorderSide(color: AppColors.border)),
                     ),
+                    child: CoverAlbum(track: track),
                   ),
-                  const SizedBox(
-                    width: AppDesign.padding,
-                  ),
-                  Expanded(child: TrackInfo(song: song))
-                ],
-              ),
-            );
-          });
-    });
+                ),
+                const SizedBox(width: AppDesign.padding),
+                Expanded(child: TrackInfo(track: track)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
 class TrackInfo extends StatelessWidget {
-  const TrackInfo({super.key, required this.song});
+  const TrackInfo({super.key, required this.track});
 
-  final MediaItem? song;
+  final Track? track;
 
   @override
   Widget build(BuildContext context) {
+    final theme = AppDesign.textTheme(context);
+    final heading = track == null
+        ? 'mptrack3'
+        : (track!.folderName.isNotEmpty ? track!.folderName : (track!.album ?? ''));
     return Padding(
-      padding: const EdgeInsets.only(
-        right: AppDesign.padding,
-      ),
+      padding: const EdgeInsets.only(right: AppDesign.padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            song?.album ?? "Unknow",
+            heading,
             maxLines: 1,
-            style: AppDesign.textTheme(context).displayLarge!.copyWith(
-                color: AppColors.accent,
-                fontSize: 20.0,
-                overflow: TextOverflow.ellipsis),
+            overflow: TextOverflow.ellipsis,
+            style: theme.displayLarge!.copyWith(color: AppColors.accent, fontSize: 20.0),
           ),
-          const SizedBox(
-            height: AppDesign.padding,
-          ),
+          const SizedBox(height: AppDesign.padding),
           Text(
-            song?.title ?? "Unknow",
+            track?.title ?? '--',
             maxLines: 2,
-            style: AppDesign.textTheme(context)
-                .bodySmall!
-                .copyWith(overflow: TextOverflow.ellipsis),
+            overflow: TextOverflow.ellipsis,
+            style: theme.bodySmall,
           ),
-          const SizedBox(
-            height: AppDesign.padding + 5,
-          ),
+          const SizedBox(height: AppDesign.padding * .6),
           Text(
-            song?.artist ?? "Unknow",
+            (track?.displayArtist.isNotEmpty ?? false)
+                ? track!.displayArtist
+                : (track == null ? '' : Strings.unknown),
             maxLines: 1,
-            style: AppDesign.textTheme(context)
-                .bodySmall!
-                .copyWith(fontSize: 10.0, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(
-            height: AppDesign.padding * .8,
+            overflow: TextOverflow.ellipsis,
+            style: theme.bodySmall!.copyWith(fontSize: 10.0),
           ),
           const Spacer(),
           const TrackProgress(),
-          const SizedBox(
-            height: AppDesign.padding * .5,
-          ),
+          const SizedBox(height: AppDesign.padding * .5),
         ],
       ),
     );

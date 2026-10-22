@@ -29,7 +29,8 @@ android {
         multiDexEnabled true
 
         minSdk = flutter.minSdkVersion
-        targetSdk = 33
+        // Google Play requires API 35 for new apps and updates.
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

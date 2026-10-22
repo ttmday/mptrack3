@@ -36,7 +36,7 @@ class ButtonAction extends StatelessWidget {
           width: minWidth,
           decoration: BoxDecoration(
               color: !isPressed
-                  ? (color ?? AppColors.secondary.withOpacity(.42))
+                  ? (color ?? AppColors.secondary.withValues(alpha: .42))
                   : null,
               borderRadius: const BorderRadius.all(
                   Radius.circular(AppDesign.padding * .6))),

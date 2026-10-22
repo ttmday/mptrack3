@@ -16,7 +16,7 @@ class AppTheme {
             selectionHandleColor: AppColors.foreground),
         appBarTheme: const AppBarTheme(
             elevation: 0,
-            color: AppColors.background,
+            backgroundColor: AppColors.background,
             systemOverlayStyle: SystemUiOverlayStyle(
                 statusBarColor: Colors.transparent,
                 systemNavigationBarColor: Colors.transparent,

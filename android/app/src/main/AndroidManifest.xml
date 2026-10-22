@@ -1,29 +1,32 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- for notifications -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Playback service and media notification -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
+    <!-- Android 12L and below: read music. Writes up to Android 10 use the
+         legacy file APIs (see requestLegacyExternalStorage). Android 11+
+         writes go through MediaStore confirmation dialogs, so no
+         MANAGE_EXTERNAL_STORAGE (not allowed for music players on Play). -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"
+        tools:ignore="ScopedStorage" />
 
-    <!-- Android 12 or below  -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-
-    <!-- Android 13 or greater  -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Android 13+: audio only (no photo/video access needed). -->
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
     <application
         android:label="Mptrack3"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -56,7 +59,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- ADD THIS "RECEIVER" element -->
+        <!-- audio_service background playback -->
         <service
             android:name="com.ryanheise.audioservice.AudioService"
             android:exported="true"

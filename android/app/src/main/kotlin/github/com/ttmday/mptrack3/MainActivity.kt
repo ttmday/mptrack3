@@ -1,68 +1,28 @@
 package github.com.ttmday.mptrack3
-import com.ryanheise.audioservice.AudioServiceActivity;
 
-import io.flutter.embedding.android.FlutterActivity
+import android.content.Intent
+import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugins.GeneratedPluginRegistrant
-import android.database.ContentObserver
-import android.net.Uri
-import android.os.Handler
-import android.os.Looper
-import android.provider.MediaStore
-import android.util.Log
-import io.flutter.plugin.common.MethodChannel
-class MainActivity: AudioServiceActivity(){
-    private val methodChannel: String = "media_changes"
 
-    private lateinit var mediaObserver: ContentObserver
+class MainActivity : AudioServiceActivity() {
+    private var mediaStore: MediaStoreBridge? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        // Plugins are registered by the superclass.
         super.configureFlutterEngine(flutterEngine)
-        GeneratedPluginRegistrant.registerWith(flutterEngine)
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, methodChannel).setMethodCallHandler { call, result ->
-             if (call.method =="listen") {
-                 startListeningForMediaChanges()
-                result.success(null)
-            } else {
-
-                result.error("UNAVAILABLE", "No Found Method ${call.method}", null)
-            }
-        }
-
+        mediaStore = MediaStoreBridge(this, flutterEngine.dartExecutor.binaryMessenger)
     }
 
-    private fun startListeningForMediaChanges() {
-        val handler = Handler(Looper.getMainLooper())
-
-        mediaObserver = object : ContentObserver(handler) {
-            override fun onChange(selfChange: Boolean, uri: Uri?) {
-                super.onChange(selfChange, uri)
-                uri?.let {
-                    val cursor = contentResolver.query(uri, null, null, null, null)
-                    cursor?.use {
-                        if (it.moveToFirst()) {
-                            val dataIndex = it.getColumnIndex(MediaStore.MediaColumns.DATA)
-                            val filePath = it.getString(dataIndex)
-                            notifyFlutter(filePath)
-                        }
-                    }
-                }
-            }
-        }
-
-        contentResolver.registerContentObserver(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            true,
-            mediaObserver
-        )
-    }
-
-    private fun notifyFlutter(filePath: String) {
-        flutterEngine?.dartExecutor?.binaryMessenger?.let { MethodChannel(it, methodChannel).invokeMethod("onMediaChanged", filePath) }
+    // Receives the result of the MediaStore delete/write confirmation dialogs.
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (mediaStore?.onActivityResult(requestCode, resultCode) == true) return
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {
+        mediaStore?.dispose()
+        mediaStore = null
         super.onDestroy()
-        contentResolver.unregisterContentObserver(mediaObserver)
     }
 }
