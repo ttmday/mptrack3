@@ -81,8 +81,6 @@ class MediaStoreBridge(
         executor.shutdown()
     }
 
-    // ------------------------------------------------------------------
-    // Method channel
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
@@ -127,8 +125,6 @@ class MediaStoreBridge(
         }
     }
 
-    // ------------------------------------------------------------------
-    // Library
 
     private fun queryLibrary(): Map<String, Any?> {
         val tracks = ArrayList<Map<String, Any?>>()
@@ -259,8 +255,6 @@ class MediaStoreBridge(
         return File("/storage/${volume.uppercase()}")
     }
 
-    // ------------------------------------------------------------------
-    // Artwork
 
     private fun artwork(id: Long, size: Int): ByteArray? {
         val uri = uriById[id]
@@ -300,8 +294,6 @@ class MediaStoreBridge(
         return stream.toByteArray()
     }
 
-    // ------------------------------------------------------------------
-    // Folders
 
     private fun createFolder(volume: String, relativePath: String): Boolean {
         if (relativePath.isBlank()) return false
@@ -324,8 +316,6 @@ class MediaStoreBridge(
         }
     }
 
-    // ------------------------------------------------------------------
-    // Delete / move
 
     private fun uriFor(id: Long): Uri =
         uriById[id] ?: ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
@@ -442,8 +432,6 @@ class MediaStoreBridge(
         return candidate
     }
 
-    // ------------------------------------------------------------------
-    // System confirmation dialogs (Android 11+)
 
     private fun launchRequest(
         sender: android.content.IntentSender,
@@ -474,8 +462,6 @@ class MediaStoreBridge(
         return true
     }
 
-    // ------------------------------------------------------------------
-    // Change events
 
     override fun onListen(arguments: Any?, sink: EventChannel.EventSink?) {
         unregisterObserver()

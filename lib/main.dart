@@ -3,24 +3,24 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mptrack3/src/browser/browser_controller.dart';
+import 'package:mptrack3/src/provider/browser.dart';
 import 'package:mptrack3/src/constants/theme.dart';
-import 'package:mptrack3/src/library/library_repository.dart';
-import 'package:mptrack3/src/player/audio_handler.dart';
-import 'package:mptrack3/src/player/player_controller.dart';
+import 'package:mptrack3/src/provider/library.dart';
+import 'package:mptrack3/src/service/player/player.dart';
+import 'package:mptrack3/src/provider/player.dart';
 import 'package:mptrack3/src/routes/router.dart';
-import 'package:mptrack3/src/terminal/terminal_controller.dart';
+import 'package:mptrack3/src/provider/terminal.dart';
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
   final prefs = await SharedPreferences.getInstance();
-  final library = LibraryRepository(prefs);
-  final handler = await initPlayerHandler((track) => library.artwork(track));
-  final player = PlayerController(handler, library, prefs);
-  final browser = BrowserController(library, prefs);
-  final terminal = TerminalController(
+  final library = LibraryProvider(prefs);
+  final handler = await initPlayerService((track) => library.artwork(track));
+  final player = PlayerProvider(handler, library, prefs);
+  final browser = BrowserProvider(library, prefs);
+  final terminal = TerminalProvider(
     library: library,
     browser: browser,
     player: player,
@@ -49,10 +49,10 @@ class Mptrack3App extends StatefulWidget {
     required this.terminal,
   });
 
-  final LibraryRepository library;
-  final PlayerController player;
-  final BrowserController browser;
-  final TerminalController terminal;
+  final LibraryProvider library;
+  final PlayerProvider player;
+  final BrowserProvider browser;
+  final TerminalProvider terminal;
 
   @override
   State<Mptrack3App> createState() => _Mptrack3AppState();

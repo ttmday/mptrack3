@@ -8,7 +8,6 @@ class MainActivity : AudioServiceActivity() {
     private var mediaStore: MediaStoreBridge? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        // Plugins are registered by the superclass.
         super.configureFlutterEngine(flutterEngine)
         mediaStore = MediaStoreBridge(this, flutterEngine.dartExecutor.binaryMessenger)
     }

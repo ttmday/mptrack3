@@ -72,18 +72,22 @@ flutter run
 
 ```
 lib/
-├── main.dart                 # arranque y providers
+├── main.dart                 # arranque: servicios → providers → MultiProvider
 └── src/
-    ├── library/              # lectura de la biblioteca (Android / iOS), búsqueda
-    ├── model/                # Track y árbol de carpetas
-    ├── player/               # audio_service + just_audio, orden aleatorio
-    ├── browser/              # navegación por carpetas y búsqueda
-    ├── terminal/             # intérprete de comandos
-    ├── view/ y widget/       # pantallas y componentes
-    └── l10n/                 # textos de la interfaz
+    ├── constants/            # colores, diseño, tema
+    ├── l10n/                 # textos de la interfaz
+    ├── provider/             # estado (library, player, browser, terminal)
+    │   └── notifier/         # formas de estado y eventos
+    ├── routes/               # una ruta por pantalla + router
+    ├── service/              # biblioteca (Android/iOS), reproductor, parser
+    ├── utils/
+    ├── view/                 # pantallas y sus widgets
+    └── widgets/              # widgets compartidos, hojas, design_system
 android/.../MediaStoreBridge.kt   # acceso nativo a MediaStore
 ios/Runner/AppDelegate.swift      # metadatos y carátulas en iOS
 ```
+
+Las convenciones del proyecto están en `CLAUDE.md`.
 
 ### Stack
 

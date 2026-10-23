@@ -1,17 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'package:mptrack3/src/browser/browser_controller.dart';
 import 'package:mptrack3/src/constants/design.dart';
-import 'package:mptrack3/src/routes/router.dart';
-import 'package:mptrack3/src/terminal/terminal_controller.dart';
-import 'package:mptrack3/src/widget/browser_list.dart';
-import 'package:mptrack3/src/widget/browser_toolbar.dart';
-import 'package:mptrack3/src/widget/command_line.dart';
-import 'package:mptrack3/src/widget/main_player.dart';
-import 'package:mptrack3/src/widget/main_player_buttons.dart';
-import 'package:mptrack3/src/widget/sheets.dart';
+import 'package:mptrack3/src/provider/browser.dart';
+import 'package:mptrack3/src/provider/terminal.dart';
+import 'package:mptrack3/src/routes/now_playing.dart';
+import 'package:mptrack3/src/view/home/widgets/browser_list.dart';
+import 'package:mptrack3/src/view/home/widgets/browser_toolbar.dart';
+import 'package:mptrack3/src/view/home/widgets/command_line.dart';
+import 'package:mptrack3/src/view/home/widgets/main_player.dart';
+import 'package:mptrack3/src/view/home/widgets/player_buttons.dart';
+import 'package:mptrack3/src/widgets/sheets/dialogs.dart';
+import 'package:mptrack3/src/widgets/sheets/help_sheet.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -20,42 +23,41 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> implements TerminalHost {
-  late final TerminalController _terminal;
+class _HomeViewState extends State<HomeView> {
+  late final StreamSubscription<TerminalEvent> _events;
 
   @override
   void initState() {
     super.initState();
-    _terminal = context.read<TerminalController>()..host = this;
+    _events = context.read<TerminalProvider>().events.listen(_onTerminalEvent);
   }
 
   @override
   void dispose() {
-    if (identical(_terminal.host, this)) _terminal.host = null;
+    _events.cancel();
     super.dispose();
   }
 
-  @override
-  Future<bool> confirm(String message) {
-    if (!mounted) return Future.value(false);
-    return showConfirmDialog(context, message);
-  }
-
-  @override
-  void openNowPlaying() {
-    if (mounted) context.push(AppRouter.nowPlaying);
-  }
-
-  @override
-  void showHelp() {
-    if (mounted) showHelpSheet(context);
+  Future<void> _onTerminalEvent(TerminalEvent event) async {
+    if (!mounted) {
+      if (event is ConfirmEvent) event.answer(false);
+      return;
+    }
+    switch (event) {
+      case ShowHelpEvent():
+        await showHelpSheet(context);
+      case OpenNowPlayingEvent():
+        context.pushNamed(NowPlayingRoute.name);
+      case final ConfirmEvent confirm:
+        confirm.answer(await showConfirmDialog(context, confirm.message));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final browser = context.watch<BrowserController>();
+    final browser = context.watch<BrowserProvider>();
     final insets = MediaQuery.paddingOf(context);
-    // Android back: close search, then go up a folder, then leave the app.
+    // Android back closes the search, then goes up a folder, then exits.
     return PopScope(
       canPop: !browser.searching && !browser.canGoUp,
       onPopInvokedWithResult: (didPop, _) {
